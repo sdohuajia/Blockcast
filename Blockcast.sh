@@ -46,7 +46,7 @@ install_node() {
     # 更新系统并安装基本依赖
     echo "正在更新系统并安装依赖..."
     apt-get update && apt-get upgrade -y
-    apt install curl iptables build-essential git wget lz4 jq make gcc nano automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar clang bsdmainutils ncdu unzip libleveldb-dev -y
+    apt install curl iptables build-essential git wget lz4 jq make gcc nano automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar clang bsdmainutils ncdu unzip libleveldb-dev iproute2 -y
 
     # 检查 Docker 是否安装
     if ! command -v docker &> /dev/null; then
@@ -62,7 +62,6 @@ install_node() {
     # 检查 Docker Compose 是否安装
     if ! command -v docker-compose &> /dev/null; then
         echo "Docker Compose 未安装，正在安装..."
-        # 获取最新版本的 Docker Compose
         DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
         curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
@@ -82,6 +81,10 @@ install_node() {
         echo "Blockcast 目录已存在，跳过克隆"
     else
         git clone https://github.com/sdohuajia/Blockcast.git
+        if [ $? -ne 0 ]; then
+            echo "错误：克隆 Blockcast 仓库失败！请检查网络或仓库地址。"
+            exit 1
+        fi
         echo "Blockcast 仓库拉取完成"
     fi
 
@@ -89,25 +92,31 @@ install_node() {
     cd Blockcast || { echo "进入 Blockcast 目录失败"; exit 1; }
     echo "已进入 Blockcast 目录"
 
+    # 检查 docker-compose 文件（支持 .yml 和 .yaml）
+    COMPOSE_FILE=""
+    if [ -f "docker-compose.yml" ]; then
+        COMPOSE_FILE="docker-compose.yml"
+    elif [ -f "docker-compose.yaml" ]; then
+        COMPOSE_FILE="docker-compose.yaml"
+    else
+        echo "错误：docker-compose.yml 或 docker-compose.yaml 文件不存在！"
+        exit 1
+    fi
+    echo "找到 docker-compose 文件：$COMPOSE_FILE"
+
     # 检查和调整 9090 端口
     PORT=9090
     MAX_PORT=9190  # 设置最大端口范围，防止无限递增
     while [ $PORT -le $MAX_PORT ]; do
         echo "正在检查 $PORT 端口..."
-        if netstat -tuln | grep -q ":$PORT "; then
+        if ss -tuln | grep -q ":$PORT "; then
             echo "警告：$PORT 端口已被占用，尝试下一个端口..."
             PORT=$((PORT + 1))
         else
             echo "$PORT 端口未被占用，使用此端口..."
-            # 修改 docker-compose.yml 中的端口
-            if [ -f "docker-compose.yml" ]; then
-                # 使用 sed 替换端口（假设端口格式为 - "9090:8080" 或类似）
-                sed -i "s/- \"[0-9]\+:8080\"/- \"$PORT:8080\"/g" docker-compose.yml
-                echo "已将 docker-compose.yml 中的端口修改为 $PORT:8080"
-            else
-                echo "错误：docker-compose.yml 文件不存在！"
-                exit 1
-            fi
+            # 修改 docker-compose 文件中的端口
+            sed -i "s/- \"[0-9]\+:8080\"/- \"$PORT:8080\"/g" "$COMPOSE_FILE"
+            echo "已将 $COMPOSE_FILE 中的端口修改为 $PORT:8080"
             break
         fi
     done
@@ -121,9 +130,9 @@ install_node() {
     # 执行 docker-compose up -d
     echo "正在启动 Docker Compose 服务..."
     if command -v docker-compose &> /dev/null; then
-        docker-compose up -d || { echo "错误：docker-compose up -d 执行失败！"; exit 1; }
+        docker-compose -f "$COMPOSE_FILE" up -d || { echo "错误：docker-compose up -d 执行失败！"; exit 1; }
     else
-        docker compose up -d || { echo "错误：docker compose up -d 执行失败！"; exit 1; }
+        docker compose -f "$COMPOSE_FILE" up -d || { echo "错误：docker compose up -d 执行失败！"; exit 1; }
     fi
     echo "Docker Compose 服务已启动"
 
