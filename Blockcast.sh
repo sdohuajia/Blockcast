@@ -154,14 +154,6 @@ view_logs() {
 
 # 注册节点函数
 register_node() {
-    # 检查是否在 Blockcast 目录
-    if [ ! -d "Blockcast" ]; then
-        echo "错误：Blockcast 目录不存在！请先运行选项 1 安装部署节点。"
-        read -p "按 Enter 返回主菜单..."
-        return
-    fi
-    cd Blockcast || { echo "进入 Blockcast 目录失败"; exit 1; }
-
     # 检查服务是否运行
     if ! docker ps | grep -q "blockcastd"; then
         echo "错误：blockcastd 容器未运行！请先运行选项 1 安装部署节点。"
