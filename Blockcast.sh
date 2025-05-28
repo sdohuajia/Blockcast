@@ -94,12 +94,12 @@ install_node() {
 
     # 检查 docker-compose 文件（支持 .yml 和 .yaml）
     COMPOSE_FILE=""
-    if [ -f "docker-compose.yml" ]; then
-        COMPOSE_FILE="docker-compose.yml"
-    elif [ -f "docker-compose.yaml" ]; then
-        COMPOSE_FILE="docker-compose.yaml"
+    if [ -f "/root/Blockcast/docker-compose.yml" ]; then
+        COMPOSE_FILE="/root/Blockcast/docker-compose.yml"
+    elif [ -f "/root/Blockcast/docker-compose.yaml" ]; then
+        COMPOSE_FILE="/root/Blockcast/docker-compose.yaml"
     else
-        echo "错误：docker-compose.yml 或 docker-compose.yaml 文件不存在！"
+        echo "错误：/root/Blockcast/docker-compose.yml 或 /root/Blockcast/docker-compose.yaml 文件不存在！"
         exit 1
     fi
     echo "找到 docker-compose 文件：$COMPOSE_FILE"
@@ -148,15 +148,42 @@ view_logs() {
     else
         echo "错误：容器 watchtower 不存在或未运行！"
         echo "请先运行选项 1 安装部署节点，或检查容器名称是否正确。"
+        echo "当前运行的容器："
+        docker ps -a
     fi
     read -p "按 Enter 返回主菜单..."
 }
 
 # 注册节点函数
 register_node() {
+    # 输出当前工作目录以便调试
+    echo "当前工作目录：$(pwd)"
+
+    # 检查 docker-compose 文件（支持 .yml 和 .yaml）
+    COMPOSE_FILE=""
+    if [ -f "/root/Blockcast/docker-compose.yml" ]; then
+        COMPOSE_FILE="/root/Blockcast/docker-compose.yml"
+    elif [ -f "/root/Blockcast/docker-compose.yaml" ]; then
+        COMPOSE_FILE="/root/Blockcast/docker-compose.yaml"
+    else
+        echo "错误：/root/Blockcast/docker-compose.yml 或 /root/Blockcast/docker-compose.yaml 文件不存在！"
+        read -p "按 Enter 返回主菜单..."
+        return
+    fi
+    echo "找到 docker-compose 文件：$COMPOSE_FILE"
+
+    # 验证文件是否可读
+    if [ ! -r "$COMPOSE_FILE" ]; then
+        echo "错误：docker-compose 文件 $COMPOSE_FILE 不可读！请检查文件权限。"
+        read -p "按 Enter 返回主菜单..."
+        return
+    fi
+
     # 检查服务是否运行
     if ! docker ps | grep -q "blockcastd"; then
         echo "错误：blockcastd 容器未运行！请先运行选项 1 安装部署节点。"
+        echo "当前运行的容器："
+        docker ps -a
         read -p "按 Enter 返回主菜单..."
         return
     fi
@@ -170,9 +197,9 @@ register_node() {
     # 执行节点初始化和注册
     echo "正在初始化和注册节点..."
     if command -v docker-compose &> /dev/null; then
-        docker-compose exec blockcastd blockcastd init || { echo "错误：节点初始化失败！"; read -p "按 Enter 返回主菜单..."; return; }
+        docker-compose -f "$COMPOSE_FILE" exec blockcastd blockcastd init || { echo "错误：节点初始化失败！"; read -p "按 Enter 返回主菜单..."; return; }
     else
-        docker compose exec blockcastd blockcastd init || { echo "错误：节点初始化失败！"; read -p "按 Enter 返回主菜单..."; return; }
+        docker compose -f "$COMPOSE_FILE" exec blockcastd blockcastd init || { echo "错误：节点初始化失败！"; read -p "按 Enter 返回主菜单..."; return; }
     fi
     echo "节点初始化和注册完成！"
 
