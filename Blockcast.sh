@@ -142,11 +142,11 @@ install_node() {
 
 # 查看日志函数
 view_logs() {
-    echo "正在查看容器 beacon-docker-compose-watchtower-1 的日志（最近 1000 行）..."
-    if docker ps -a | grep -q "beacon-docker-compose-watchtower-1"; then
-        docker logs --tail 1000 beacon-docker-compose-watchtower-1
+    echo "正在查看容器 watchtower 的日志（最近 1000 行）..."
+    if docker ps -a | grep -q "watchtower"; then
+        docker logs --tail 1000 watchtower
     else
-        echo "错误：容器 beacon-docker-compose-watchtower-1 不存在或未运行！"
+        echo "错误：容器 watchtower 不存在或未运行！"
         echo "请先运行选项 1 安装部署节点，或检查容器名称是否正确。"
     fi
     read -p "按 Enter 返回主菜单..."
