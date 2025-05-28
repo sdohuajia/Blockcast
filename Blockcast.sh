@@ -10,10 +10,6 @@ fi
 # 脚本保存路径
 SCRIPT_PATH="$HOME/Blockcast.sh"
 
-# 保存脚本到指定路径
-cat "$0" > "$SCRIPT_PATH" && chmod +x "$SCRIPT_PATH"
-echo "脚本已保存到 $SCRIPT_PATH"
-
 # 主菜单函数
 main_menu() {
     while true; do
